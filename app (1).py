@@ -717,7 +717,7 @@ def main():
                     title="Orders by Platform",
                     color_discrete_map=PLATFORM_COLORS
                 )
-                st.plotly_chart(fig_orders, use_container_width=True)
+                st.plotly_chart(fig_orders, width='stretch', key='overview_orders_pie')
             
             with col2:
                 # 收入柱状图
@@ -729,7 +729,7 @@ def main():
                     color=platform_revenue.index,
                     color_discrete_map=PLATFORM_COLORS
                 )
-                st.plotly_chart(fig_revenue, use_container_width=True)
+                st.plotly_chart(fig_revenue, width='stretch', key='overview_revenue_bar')
             
             # 平台性能表
             st.markdown("### 📋 Platform Performance Summary")
@@ -739,7 +739,7 @@ def main():
             }).round(2)
             
             platform_summary.columns = ['Orders', 'Revenue', 'AOV', 'Customers']
-            st.dataframe(platform_summary, use_container_width=True)
+            st.dataframe(platform_summary, width='stretch')
         
         # Tab 2: Revenue (保持原有功能增强)
         with tab2:
@@ -749,14 +749,14 @@ def main():
             daily_revenue = completed_df.groupby('Date')['Revenue'].sum().reset_index()
             fig_daily = px.line(daily_revenue, x='Date', y='Revenue', 
                               title="Daily Revenue Trend")
-            st.plotly_chart(fig_daily, use_container_width=True)
+            st.plotly_chart(fig_daily, width='stretch', key='revenue_daily_trend')
             
             # 周收入对比
             completed_df['Week'] = completed_df['Date'].dt.isocalendar().week
             weekly_revenue = completed_df.groupby('Week')['Revenue'].sum().reset_index()
             fig_weekly = px.bar(weekly_revenue, x='Week', y='Revenue',
                               title="Weekly Revenue Comparison")
-            st.plotly_chart(fig_weekly, use_container_width=True)
+            st.plotly_chart(fig_weekly, width='stretch', key='revenue_weekly_comparison')
         
         # Tab 3: Performance (保持原有功能)
         with tab3:
@@ -768,7 +768,7 @@ def main():
             }).round(2)
             
             store_performance.columns = ['Orders', 'Revenue', 'AOV']
-            st.dataframe(store_performance, use_container_width=True)
+            st.dataframe(store_performance, width='stretch')
             
             # 门店收入热力图
             store_platform_revenue = completed_df.pivot_table(
@@ -782,7 +782,7 @@ def main():
                 title="Store Performance Heatmap (Revenue)",
                 color_continuous_scale='Greens'
             )
-            st.plotly_chart(fig_heatmap, use_container_width=True)
+            st.plotly_chart(fig_heatmap, width='stretch', key='performance_store_heatmap')
         
         # Tab 4: Operations (保持原有功能)
         with tab4:
@@ -801,7 +801,7 @@ def main():
                 title="Orders by Hour & Day of Week",
                 color_continuous_scale='Blues'
             )
-            st.plotly_chart(fig_hour_heatmap, use_container_width=True)
+            st.plotly_chart(fig_hour_heatmap, width='stretch', key='operations_hour_heatmap')
             
             # 取消率分析
             cancellation_rate = df.groupby('Platform')['Is_Cancelled'].mean() * 100
@@ -812,7 +812,7 @@ def main():
                 color=cancellation_rate.index,
                 color_discrete_map=PLATFORM_COLORS
             )
-            st.plotly_chart(fig_cancel, use_container_width=True)
+            st.plotly_chart(fig_cancel, width='stretch', key='operations_cancellation_rate')
         
         # Tab 5: Growth (保持原有功能)
         with tab5:
@@ -825,13 +825,13 @@ def main():
                 daily_orders = completed_df.groupby('Date').size().reset_index(name='Orders')
                 fig_daily_orders = px.line(daily_orders, x='Date', y='Orders',
                                          title="Daily Orders Trend")
-                st.plotly_chart(fig_daily_orders, use_container_width=True)
+                st.plotly_chart(fig_daily_orders, width='stretch', key='growth_daily_orders')
             
             with col2:
                 # 日收入趋势
                 fig_daily_revenue = px.line(daily_revenue, x='Date', y='Revenue',
                                           title="Daily Revenue Trend")
-                st.plotly_chart(fig_daily_revenue, use_container_width=True)
+                st.plotly_chart(fig_daily_revenue, width='stretch', key='growth_daily_revenue')
             
             # 增长率计算
             daily_orders['Orders_Growth'] = daily_orders['Orders'].pct_change() * 100
@@ -842,12 +842,12 @@ def main():
             with col1:
                 fig_order_growth = px.bar(daily_orders, x='Date', y='Orders_Growth',
                                         title="Daily Orders Growth Rate (%)")
-                st.plotly_chart(fig_order_growth, use_container_width=True)
+                st.plotly_chart(fig_order_growth, width='stretch', key='growth_orders_growth_rate')
             
             with col2:
                 fig_revenue_growth = px.bar(daily_revenue, x='Date', y='Revenue_Growth',
                                           title="Daily Revenue Growth Rate (%)")
-                st.plotly_chart(fig_revenue_growth, use_container_width=True)
+                st.plotly_chart(fig_revenue_growth, width='stretch', key='growth_revenue_growth_rate')
             
             # 预测指标
             st.markdown("### 🔮 Predictive Insights")
@@ -877,11 +877,11 @@ def main():
             
             with col1:
                 fig_funnel = create_advanced_funnel_chart(funnel_data)
-                st.plotly_chart(fig_funnel, use_container_width=True)
+                st.plotly_chart(fig_funnel, width='stretch', key='attribution_funnel')
             
             with col2:
                 st.markdown("#### Platform Attribution Metrics")
-                st.dataframe(funnel_data, use_container_width=True)
+                st.dataframe(funnel_data, width='stretch')
             
             # 客户获取成本 vs LTV分析
             st.markdown("#### 💰 Customer Acquisition Cost vs Lifetime Value")
@@ -918,11 +918,11 @@ def main():
             
             with col1:
                 fig_segmentation = create_customer_segmentation_chart(rfm_data)
-                st.plotly_chart(fig_segmentation, use_container_width=True)
+                st.plotly_chart(fig_segmentation, width='stretch', key='attribution_segmentation')
             
             with col2:
                 fig_rfm_heatmap = create_rfm_heatmap(rfm_data)
-                st.plotly_chart(fig_rfm_heatmap, use_container_width=True)
+                st.plotly_chart(fig_rfm_heatmap, width='stretch', key='attribution_rfm_heatmap')
             
             # 客户细分详情
             segment_summary = rfm_data.groupby('Segment').agg({
@@ -932,7 +932,7 @@ def main():
             }).round(2)
             
             st.markdown("#### Customer Segment Summary")
-            st.dataframe(segment_summary, use_container_width=True)
+            st.dataframe(segment_summary, width='stretch')
             
             # 营销建议
             st.markdown("### 💡 Marketing Recommendations")
@@ -962,7 +962,7 @@ def main():
             
             with col1:
                 fig_clv = create_clv_distribution_chart(customer_metrics)
-                st.plotly_chart(fig_clv, use_container_width=True)
+                st.plotly_chart(fig_clv, width='stretch', key='retention_clv_distribution')
             
             with col2:
                 # 客户订单频率分布
@@ -973,7 +973,7 @@ def main():
                     title="Customer Order Frequency Distribution",
                     labels={'x': 'Number of Orders', 'y': 'Number of Customers'}
                 )
-                st.plotly_chart(fig_freq, use_container_width=True)
+                st.plotly_chart(fig_freq, width='stretch', key='retention_order_frequency')
             
             # 客户旅程分析
             st.markdown("### 🛣️ Customer Journey Analysis")
@@ -1016,7 +1016,7 @@ def main():
                 names=list(loyalty_data.keys()),
                 title="Customer Platform Loyalty"
             )
-            st.plotly_chart(fig_loyalty, use_container_width=True)
+            st.plotly_chart(fig_loyalty, width='stretch', key='retention_platform_loyalty')
             
             # 留存率分析
             try:
@@ -1024,7 +1024,7 @@ def main():
                 retention_table = create_cohort_table(completed_df)
                 if not retention_table.empty:
                     fig_cohort = create_cohort_heatmap(retention_table)
-                    st.plotly_chart(fig_cohort, use_container_width=True)
+                    st.plotly_chart(fig_cohort, width='stretch', key='retention_cohort_heatmap')
                 else:
                     st.info("Insufficient data for cohort analysis")
             except Exception as e:
@@ -1046,7 +1046,7 @@ def main():
                 'Avg_Order_Value': 'mean'
             }).round(2)
             
-            st.dataframe(tier_summary, use_container_width=True)
+            st.dataframe(tier_summary, width='stretch')
         
         # 导出功能
         st.markdown("---")
