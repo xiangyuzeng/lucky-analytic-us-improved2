@@ -1,37 +1,7 @@
-# Luckin Coffee Advanced Marketing Analytics Dashboard - Requirements
-# 瑞幸咖啡高级营销分析仪表板 - 依赖项
-
-# Core dependencies 核心依赖项
 streamlit>=1.28.0
 pandas>=2.0.0
 numpy>=1.24.0
 plotly>=5.17.0
-
-# Date handling 日期处理
+xlsxwriter>=3.1.0
+openpyxl>=3.1.0
 python-dateutil>=2.8.2
-
-# Data export 数据导出  
-openpyxl>=3.1.0  # For Excel export Excel导出
-xlsxwriter>=3.1.0  # Enhanced Excel writer 增强Excel写入器
-
-# Visualization enhancements 可视化增强
-matplotlib>=3.7.0  # For additional chart types 附加图表类型
-seaborn>=0.12.0  # For statistical visualizations 统计可视化
-
-# Performance 性能优化
-pyarrow>=14.0.0  # For faster parquet operations 更快的parquet操作
-
-# Machine Learning for Customer Analytics 客户分析机器学习
-scikit-learn>=1.3.0  # For RFM analysis and customer segmentation 客户细分分析
-scipy>=1.11.0  # For statistical analysis 统计分析
-
-# Development tools (optional) 开发工具（可选）
-black>=23.0.0  # Code formatting 代码格式化
-pylint>=2.17.0  # Code linting 代码检查
-
-# Additional utilities 其他工具
-chardet>=5.0.0  # Character encoding detection 字符编码检测
-
-# Enhanced Analytics Dependencies 增强分析依赖
-# For cohort analysis and advanced customer metrics
-# 用于队列分析和高级客户指标
