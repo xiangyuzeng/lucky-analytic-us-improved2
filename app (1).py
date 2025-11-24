@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 
 # 页面配置
 st.set_page_config(
-    page_title="瑞幸咖啡 - 高级营销分析仪表板",
+    page_title="瑞幸咖啡北美外卖平台分析系统",
     page_icon="☕",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -402,9 +402,8 @@ def main():
     # 页头
     st.markdown("""
         <div class='luckin-header'>
-            <h1 style='margin: 0; font-size: 2.5rem;'>☕ 瑞幸咖啡 - 高级营销分析仪表板</h1>
+            <h1 style='margin: 0; font-size: 2.5rem;'>瑞幸咖啡北美外卖平台分析系统</h1>
             <p style='margin: 0.5rem 0 0 0; font-size: 1.2rem; opacity: 0.9;'>
-                2025年10月业绩分析报告
             </p>
         </div>
     """, unsafe_allow_html=True)
