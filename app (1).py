@@ -701,7 +701,7 @@ def main():
             title='Orders by Hour of Day',
             color_discrete_map=PLATFORM_COLORS
         )
-        fig_hourly.update_xaxis(dtick=1)
+        fig_hourly.update_xaxes(dtick=1)
         st.plotly_chart(fig_hourly, use_container_width=True)
         
         # Peak hours analysis
