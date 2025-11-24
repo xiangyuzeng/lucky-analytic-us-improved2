@@ -11,15 +11,15 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings('ignore')
 
-# Page Configuration
+# 页面配置
 st.set_page_config(
-    page_title="Luckin Coffee - Advanced Marketing Analytics Dashboard",
+    page_title="瑞幸咖啡 - 高级营销分析仪表板",
     page_icon="☕",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# 自定义CSS样式
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -75,27 +75,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Platform Colors
+# 平台颜色配置
 PLATFORM_COLORS = {
     'DoorDash': '#ff3008',
     'Uber': '#000000',
     'Grubhub': '#ff8000'
 }
 
-# CRITICAL: Store Mapping - Standardized to US00001-US00006
+# 门店ID映射 - 标准化为US00001-US00006
 STORE_ID_MAPPING = {
-    'US00001': 'Broadway',
-    'US00002': '6th Ave',
-    'US00003': 'Maiden Lane',
-    'US00004': '37th St',
-    'US00005': '8th Ave',
-    'US00006': 'Fulton St',
-    # Handle variations
-    'US 00001': 'Broadway',
-    'US 00006': 'Fulton St'
+    'US00001': 'Broadway (百老汇店)',
+    'US00002': '6th Ave (第六大道店)',
+    'US00003': 'Maiden Lane (梅登巷店)',
+    'US00004': '37th St (37街店)',
+    'US00005': '8th Ave (第八大道店)',
+    'US00006': 'Fulton St (富尔顿街店)',
+    # 处理变体
+    'US 00001': 'Broadway (百老汇店)',
+    'US 00006': 'Fulton St (富尔顿街店)'
 }
 
-# Reverse mapping for Uber store names
+# 反向映射Uber门店名称
 STORE_NAME_TO_ID = {
     'Broadway': 'US00001',
     '6th Ave': 'US00002',
@@ -106,21 +106,21 @@ STORE_NAME_TO_ID = {
 }
 
 def standardize_store_name(store_str, platform=None):
-    """Standardize store names to US00001-US00006 format"""
+    """将门店名称标准化为US00001-US00006格式"""
     if pd.isna(store_str):
         return None
     
     store_str = str(store_str).strip()
     
-    # For DoorDash - extract store ID from name
+    # DoorDash - 从名称中提取门店ID
     if 'US00' in store_str or 'US 00' in store_str:
-        # Extract the ID
+        # 提取ID
         for store_id in STORE_ID_MAPPING.keys():
             if store_id in store_str:
-                # Return the standardized ID (without spaces)
+                # 返回标准化的ID（去除空格）
                 return store_id.replace(' ', '')
     
-    # For Uber - map store names to IDs
+    # Uber - 将门店名称映射到ID
     if platform == 'Uber':
         if 'Broadway' in store_str:
             return 'US00001'
@@ -135,36 +135,36 @@ def standardize_store_name(store_str, platform=None):
         elif 'Fulton' in store_str:
             return 'US00006'
     
-    # For Grubhub - already has store numbers
+    # Grubhub - 已经有门店编号
     if platform == 'Grubhub' and store_str in STORE_ID_MAPPING:
         return store_str
     
     return store_str
 
 def get_store_display_name(store_id):
-    """Get display name for a store ID"""
+    """获取门店ID的显示名称"""
     if store_id in STORE_ID_MAPPING:
         return f"{store_id} - {STORE_ID_MAPPING[store_id]}"
     return store_id
 
 @st.cache_data
 def process_doordash_data(df):
-    """Process DoorDash data with October 2025 focus"""
+    """处理DoorDash数据 - 聚焦2025年10月"""
     try:
         processed = pd.DataFrame()
         
-        # Core fields
+        # 核心字段
         processed['Date'] = pd.to_datetime(df['时间戳本地日期'], format='%m/%d/%Y', errors='coerce')
         processed['Platform'] = 'DoorDash'
         processed['Revenue'] = pd.to_numeric(df['净总计'], errors='coerce')
         
-        # Store standardization
+        # 门店标准化
         if '店铺名称' in df.columns:
             processed['Store_ID'] = df['店铺名称'].apply(lambda x: standardize_store_name(x, 'DoorDash'))
         else:
             processed['Store_ID'] = 'Unknown'
         
-        # Order status
+        # 订单状态
         if '最终订单状态' in df.columns:
             processed['Is_Completed'] = df['最终订单状态'].str.contains('Delivered|delivered', case=False, na=False)
             processed['Is_Cancelled'] = df['最终订单状态'].str.contains('Cancelled|cancelled', case=False, na=False)
@@ -172,22 +172,22 @@ def process_doordash_data(df):
             processed['Is_Completed'] = True
             processed['Is_Cancelled'] = False
         
-        # Additional fields
+        # 附加字段
         processed['Order_ID'] = df['DoorDash 订单 ID'].astype(str) if 'DoorDash 订单 ID' in df.columns else range(len(df))
         
-        # Time processing
+        # 时间处理
         if '时间戳为本地时间' in df.columns:
             time_series = pd.to_datetime(df['时间戳为本地时间'], errors='coerce')
             processed['Hour'] = time_series.dt.hour.fillna(12)
         else:
             processed['Hour'] = 12
         
-        # Add temporal fields
+        # 添加时间字段
         processed['DayOfWeek'] = processed['Date'].dt.day_name()
         processed['Day'] = processed['Date'].dt.day
         processed['Month'] = processed['Date'].dt.to_period('M')
         
-        # Additional metrics
+        # 附加指标
         if '小计' in df.columns:
             processed['Subtotal'] = pd.to_numeric(df['小计'], errors='coerce')
         if '员工小费' in df.columns:
@@ -195,137 +195,135 @@ def process_doordash_data(df):
         if '佣金' in df.columns:
             processed['Commission'] = pd.to_numeric(df['佣金'], errors='coerce')
         
-        # Filter for October 2025
+        # 筛选2025年10月数据
         processed = processed[
             (processed['Date'] >= '2025-10-01') & 
             (processed['Date'] <= '2025-10-31')
         ]
         
-        # Clean data
+        # 清理数据
         processed = processed[processed['Date'].notna() & processed['Revenue'].notna()]
         processed = processed[processed['Revenue'].abs() < 1000]
         
         return processed.reset_index(drop=True)
     
     except Exception as e:
-        st.error(f"DoorDash processing error: {e}")
+        st.error(f"DoorDash数据处理错误: {e}")
         return pd.DataFrame()
 
 @st.cache_data
 def process_uber_data(df):
-    """Process Uber data with header handling"""
+    """处理Uber数据"""
     try:
-        # Handle Uber's two-row header issue
+        # 处理Uber的双行标题问题
         if 'Uber Eats' in str(df.columns[0]):
-            # Skip the header row
+            # 跳过标题行
             df = df.iloc[1:].reset_index(drop=True)
         
         processed = pd.DataFrame()
         
-        # Date processing - column 8
+        # 日期处理 - 第8列
         date_col = df.columns[8]
         processed['Date'] = pd.to_datetime(df[date_col], format='%m/%d/%Y', errors='coerce')
         
         processed['Platform'] = 'Uber'
         
-        # Revenue - column 26 '餐点销售额总计，包括优惠、调整和打包袋费用（含适用的税费）'
+        # 收入 - 第26列 '餐点销售额总计，包括优惠、调整和打包袋费用（含适用的税费）'
         revenue_col = df.columns[26]
         processed['Revenue'] = pd.to_numeric(df[revenue_col], errors='coerce')
         
-        # Store standardization - column 0
+        # 门店标准化 - 第0列
         store_col = df.columns[0]
         processed['Store_ID'] = df[store_col].apply(lambda x: standardize_store_name(x, 'Uber'))
         
-        # Order status - column 7
+        # 订单状态 - 第7列
         status_col = df.columns[7]
         processed['Is_Completed'] = df[status_col].str.contains('已完成', na=False)
         processed['Is_Cancelled'] = df[status_col].str.contains('已取消', na=False)
         
-        # Order ID - column 2
+        # 订单ID - 第2列
         processed['Order_ID'] = df[df.columns[2]].astype(str)
         
-        # Time processing - column 9
+        # 时间处理 - 第9列
         time_col = df.columns[9]
         time_series = pd.to_datetime(df[time_col], errors='coerce')
         processed['Hour'] = time_series.dt.hour.fillna(12)
         
-        # Add temporal fields
+        # 添加时间字段
         processed['DayOfWeek'] = processed['Date'].dt.day_name()
         processed['Day'] = processed['Date'].dt.day
         processed['Month'] = processed['Date'].dt.to_period('M')
         
-        # Additional metrics
+        # 附加指标
         if len(df.columns) > 15:
             processed['Subtotal'] = pd.to_numeric(df[df.columns[15]], errors='coerce')
         if len(df.columns) > 29:
             processed['Tips'] = pd.to_numeric(df[df.columns[29]], errors='coerce')
         
-        # Filter for October 2025
+        # 筛选2025年10月数据
         processed = processed[
             (processed['Date'] >= '2025-10-01') & 
             (processed['Date'] <= '2025-10-31')
         ]
         
-        # Clean data
+        # 清理数据
         processed = processed[processed['Date'].notna() & processed['Revenue'].notna()]
         processed = processed[processed['Revenue'].abs() < 1000]
         
         return processed.reset_index(drop=True)
     
     except Exception as e:
-        st.error(f"Uber processing error: {e}")
+        st.error(f"Uber数据处理错误: {e}")
         return pd.DataFrame()
 
 @st.cache_data
 def process_grubhub_data(df):
-    """Process Grubhub data - now with FIXED dates!"""
+    """处理Grubhub数据"""
     try:
         processed = pd.DataFrame()
         
-        # Parse the FIXED dates
+        # 解析日期
         processed['Date'] = pd.to_datetime(df['transaction_date'], format='%m/%d/%Y', errors='coerce')
         
-        # If dates are still corrupted (showing as ####), use fallback
+        # 如果日期仍然损坏，使用备用方案
         if processed['Date'].isna().all():
-            # Distribute across October 2025
+            # 在2025年10月均匀分布
             num_orders = len(df)
             oct_dates = pd.date_range('2025-10-01', '2025-10-31', periods=num_orders)
             processed['Date'] = oct_dates
-            st.warning("⚠️ Grubhub dates were corrupted - distributed evenly across October 2025")
+            st.warning("⚠️ Grubhub日期数据损坏 - 已均匀分布到2025年10月")
         
         processed['Platform'] = 'Grubhub'
         
-        # Revenue
+        # 收入
         processed['Revenue'] = pd.to_numeric(df['merchant_net_total'], errors='coerce')
         
-        # Store standardization - use store_number directly
+        # 门店标准化 - 直接使用store_number
         if 'store_number' in df.columns:
             processed['Store_ID'] = df['store_number'].apply(lambda x: standardize_store_name(x, 'Grubhub'))
         else:
             processed['Store_ID'] = 'Unknown'
         
-        # Order status - Grubhub usually completed
+        # 订单状态 - Grubhub通常为已完成
         processed['Is_Completed'] = True
         processed['Is_Cancelled'] = False
         
-        # Order ID
+        # 订单ID
         processed['Order_ID'] = df['order_number'].astype(str)
         
-        # Time processing
+        # 时间处理
         if 'transaction_time_local' in df.columns:
-            # Try to extract hour from time field
             time_str = df['transaction_time_local'].astype(str)
-            # If time is valid, extract hour
-            processed['Hour'] = 12  # Default
+            processed['Hour'] = 12  # 默认值
         else:
             processed['Hour'] = 12
         
-        # Add temporal fields
+        # 添加时间字段
         processed['DayOfWeek'] = processed['Date'].dt.day_name()
         processed['Day'] = processed['Date'].dt.day
         processed['Month'] = processed['Date'].dt.to_period('M')
         
-        # Additional metrics
+        # 附加指标
         if 'subtotal' in df.columns:
             processed['Subtotal'] = pd.to_numeric(df['subtotal'], errors='coerce')
         if 'tip' in df.columns:
@@ -333,32 +331,32 @@ def process_grubhub_data(df):
         if 'commission' in df.columns:
             processed['Commission'] = pd.to_numeric(df['commission'], errors='coerce')
         
-        # Filter for October 2025
+        # 筛选2025年10月数据
         processed = processed[
             (processed['Date'] >= '2025-10-01') & 
             (processed['Date'] <= '2025-10-31')
         ]
         
-        # Clean data
+        # 清理数据
         processed = processed[processed['Date'].notna() & processed['Revenue'].notna()]
         processed = processed[processed['Revenue'].abs() < 1000]
         
-        # Remove any rows with NaN store_ID
+        # 移除门店ID为空的行
         processed = processed[processed['Store_ID'].notna()]
         
         return processed.reset_index(drop=True)
     
     except Exception as e:
-        st.error(f"Grubhub processing error: {e}")
+        st.error(f"Grubhub数据处理错误: {e}")
         return pd.DataFrame()
 
 def calculate_growth_metrics(df):
-    """Calculate month-over-month growth metrics"""
-    # Since we only have October data, simulate previous month for demo
+    """计算月环比增长指标"""
+    # 由于只有10月数据，模拟上月数据用于演示
     current_revenue = df['Revenue'].sum()
     current_orders = len(df)
     
-    # Simulate September data (80% of October)
+    # 模拟9月数据（10月的80%）
     prev_revenue = current_revenue * 0.8
     prev_orders = int(current_orders * 0.8)
     
@@ -368,66 +366,79 @@ def calculate_growth_metrics(df):
     return revenue_growth, order_growth
 
 def perform_customer_segmentation(df):
-    """Perform customer segmentation analysis"""
+    """执行客户细分分析"""
     if 'Order_ID' not in df.columns or df.empty:
         return pd.DataFrame()
     
-    # Create customer metrics
+    # 创建客户指标
     customer_metrics = df.groupby('Order_ID').agg({
         'Revenue': 'sum',
         'Date': 'count'
     }).rename(columns={'Date': 'Order_Count'})
     
-    # Simple segmentation
+    # 简单细分
     customer_metrics['Segment'] = pd.cut(
         customer_metrics['Revenue'],
         bins=[0, 10, 20, 50, float('inf')],
-        labels=['Low Value', 'Medium Value', 'High Value', 'VIP']
+        labels=['低价值', '中等价值', '高价值', 'VIP']
     )
     
     return customer_metrics
 
+def translate_day_name(day_name):
+    """将英文星期几转换为中文"""
+    day_mapping = {
+        'Monday': '星期一',
+        'Tuesday': '星期二',
+        'Wednesday': '星期三',
+        'Thursday': '星期四',
+        'Friday': '星期五',
+        'Saturday': '星期六',
+        'Sunday': '星期日'
+    }
+    return day_mapping.get(day_name, day_name)
+
 def main():
-    # Header
+    # 页头
     st.markdown("""
         <div class='luckin-header'>
-            <h1 style='margin: 0; font-size: 2.5rem;'>☕ Luckin Coffee - Advanced Marketing Analytics Dashboard</h1>
+            <h1 style='margin: 0; font-size: 2.5rem;'>☕ 瑞幸咖啡 - 高级营销分析仪表板</h1>
             <p style='margin: 0.5rem 0 0 0; font-size: 1.2rem; opacity: 0.9;'>
-                October 2025 Performance Analysis
+                2025年10月业绩分析报告
             </p>
         </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar for file upload
+    # 侧边栏文件上传
     with st.sidebar:
-        st.markdown("## 📁 Data Upload Center")
+        st.markdown("## 📁 数据上传中心")
         
-        doordash_file = st.file_uploader("DoorDash CSV", type=['csv'], key='dd')
-        uber_file = st.file_uploader("Uber CSV", type=['csv'], key='uber')
-        grubhub_file = st.file_uploader("Grubhub CSV", type=['csv'], key='gh')
-        
-        st.markdown("---")
-        st.markdown("## 📊 Analysis Period")
-        st.info("📅 **Current Focus:** October 2025 only")
-        st.info("All analyses are automatically filtered to October 2025 data to ensure accuracy.")
+        doordash_file = st.file_uploader("DoorDash CSV文件", type=['csv'], key='dd')
+        uber_file = st.file_uploader("Uber CSV文件", type=['csv'], key='uber')
+        grubhub_file = st.file_uploader("Grubhub CSV文件", type=['csv'], key='gh')
         
         st.markdown("---")
-        st.markdown("## 🏪 Store Mapping")
+        st.markdown("## 📊 分析期间")
+        st.info("📅 **当前聚焦:** 仅2025年10月数据")
+        st.info("所有分析自动筛选为2025年10月数据以确保准确性。")
+        
+        st.markdown("---")
+        st.markdown("## 🏪 门店映射")
         st.markdown("""
-        - **US00001**: Broadway
-        - **US00002**: 6th Ave
-        - **US00003**: Maiden Lane
-        - **US00004**: 37th St
-        - **US00005**: 8th Ave
-        - **US00006**: Fulton St
+        - **US00001**: Broadway (百老汇店)
+        - **US00002**: 6th Ave (第六大道店)
+        - **US00003**: Maiden Lane (梅登巷店)
+        - **US00004**: 37th St (37街店)
+        - **US00005**: 8th Ave (第八大道店)
+        - **US00006**: Fulton St (富尔顿街店)
         """)
     
-    # Main content
+    # 主要内容
     if not (doordash_file or uber_file or grubhub_file):
-        st.info("📤 Please upload at least one platform's CSV file to begin analysis")
+        st.info("📤 请上传至少一个平台的CSV文件以开始分析")
         return
     
-    # Process uploaded files
+    # 处理上传的文件
     all_data = []
     processing_notes = []
     platform_status = {}
@@ -437,10 +448,10 @@ def main():
         processed_dd = process_doordash_data(df_dd)
         if not processed_dd.empty:
             all_data.append(processed_dd)
-            processing_notes.append(f"✅ DoorDash: {len(processed_dd)} October orders ({len(df_dd)} raw rows)")
+            processing_notes.append(f"✅ DoorDash: {len(processed_dd)}个10月订单（原始数据{len(df_dd)}行）")
             platform_status['DoorDash'] = 'SUCCESS'
         else:
-            processing_notes.append("❌ DoorDash: No valid October data found")
+            processing_notes.append("❌ DoorDash: 未找到有效的10月数据")
             platform_status['DoorDash'] = 'FAILED'
     
     if uber_file:
@@ -448,10 +459,10 @@ def main():
         processed_uber = process_uber_data(df_uber)
         if not processed_uber.empty:
             all_data.append(processed_uber)
-            processing_notes.append(f"✅ Uber: {len(processed_uber)} October orders ({len(df_uber)} raw rows)")
+            processing_notes.append(f"✅ Uber: {len(processed_uber)}个10月订单（原始数据{len(df_uber)}行）")
             platform_status['Uber'] = 'SUCCESS'
         else:
-            processing_notes.append("❌ Uber: No valid October data found")
+            processing_notes.append("❌ Uber: 未找到有效的10月数据")
             platform_status['Uber'] = 'FAILED'
     
     if grubhub_file:
@@ -459,35 +470,34 @@ def main():
         processed_gh = process_grubhub_data(df_gh)
         if not processed_gh.empty:
             all_data.append(processed_gh)
-            # Check if dates were valid
             if not processed_gh['Date'].isna().any():
-                processing_notes.append(f"✅ Grubhub: {len(processed_gh)} October orders ({len(df_gh)} raw rows)")
+                processing_notes.append(f"✅ Grubhub: {len(processed_gh)}个10月订单（原始数据{len(df_gh)}行）")
             else:
-                processing_notes.append(f"⚠️ Grubhub: {len(processed_gh)} orders loaded (dates estimated)")
+                processing_notes.append(f"⚠️ Grubhub: 已加载{len(processed_gh)}个订单（日期为估计值）")
             platform_status['Grubhub'] = 'SUCCESS'
         else:
-            processing_notes.append("❌ Grubhub: No valid October data found")
+            processing_notes.append("❌ Grubhub: 未找到有效的10月数据")
             platform_status['Grubhub'] = 'FAILED'
     
     if not all_data:
-        st.error("❌ No data could be processed. Please check file formats.")
+        st.error("❌ 无法处理任何数据。请检查文件格式。")
         return
     
-    # Combine all data
+    # 合并所有数据
     df = pd.concat(all_data, ignore_index=True)
     
-    # Data Quality Box
-    with st.expander("✅ Data Quality Fixes Applied", expanded=True):
+    # 数据质量说明框
+    with st.expander("✅ 已应用的数据质量修复", expanded=True):
         st.markdown("""
-        - **Date filtering corrected** to October 2025 only
-        - **Store ID mappings fixed** (US00001=Broadway, US00002=6th Ave, US00003=Maiden Ln, US00004=37th, US00005=8th, US00006=Fulton)
-        - **Revenue analysis** focused on actual order data
-        - **Grubhub date handling** improved
+        - **日期筛选已修正**为仅限2025年10月
+        - **门店ID映射已修复**（US00001=百老汇店，US00002=第六大道店，US00003=梅登巷店，US00004=37街店，US00005=第八大道店，US00006=富尔顿街店）
+        - **收入分析**聚焦实际订单数据
+        - **Grubhub日期处理**已改进
         """)
     
-    # Processing Notes
+    # 处理说明
     if processing_notes:
-        st.markdown("### 📝 Data Processing Notes")
+        st.markdown("### 📝 数据处理说明")
         for note in processing_notes:
             if "✅" in note:
                 st.success(note)
@@ -496,7 +506,7 @@ def main():
             else:
                 st.error(note)
     
-    # Calculate metrics
+    # 计算指标
     total_orders = len(df)
     total_revenue = df['Revenue'].sum()
     avg_order_value = df['Revenue'].mean()
@@ -505,62 +515,62 @@ def main():
     unique_stores = df['Store_ID'].nunique()
     revenue_growth, order_growth = calculate_growth_metrics(df)
     
-    # Executive Summary
-    st.markdown("## 📊 Executive Summary")
+    # 执行摘要
+    st.markdown("## 📊 执行摘要")
     
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        st.metric("Total Orders", f"{total_orders:,}")
+        st.metric("总订单数", f"{total_orders:,}")
     with col2:
-        st.metric("Total Revenue", f"${total_revenue:,.2f}")
+        st.metric("总收入", f"${total_revenue:,.2f}")
     with col3:
-        st.metric("AOV", f"${avg_order_value:.2f}")
+        st.metric("客单价", f"${avg_order_value:.2f}")
     with col4:
-        st.metric("Completion Rate", f"{completion_rate:.1f}%")
+        st.metric("完成率", f"{completion_rate:.1f}%")
     with col5:
-        st.metric("Active Stores", f"{unique_stores}")
+        st.metric("活跃门店", f"{unique_stores}")
     with col6:
-        st.metric("Revenue Growth", f"+{revenue_growth:.1f}%")
+        st.metric("收入增长", f"+{revenue_growth:.1f}%")
     
-    # Create tabs - ALL 8 TABS from original
+    # 创建选项卡 - 所有8个选项卡
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-        "📊 Overview", "💰 Revenue Analytics", "🏆 Performance", 
-        "🕐 Operations", "📈 Growth & Trends", "🎯 Customer Attribution",
-        "🔄 Retention & Churn", "📱 Platform Comparison"
+        "📊 概览", "💰 收入分析", "🏆 业绩表现", 
+        "🕐 运营分析", "📈 增长趋势", "🎯 客户归因",
+        "🔄 留存与流失", "📱 平台对比"
     ])
     
-    # TAB 1: OVERVIEW
+    # 选项卡1: 概览
     with tab1:
-        st.markdown("### 🎯 October Overview")
+        st.markdown("### 🎯 10月概览")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Order distribution pie chart
+            # 订单分布饼图
             order_by_platform = df.groupby('Platform').size()
             fig_orders = px.pie(
                 values=order_by_platform.values,
                 names=order_by_platform.index,
-                title="Order Distribution by Platform",
+                title="平台订单分布",
                 color=order_by_platform.index,
                 color_discrete_map=PLATFORM_COLORS
             )
             st.plotly_chart(fig_orders, use_container_width=True)
         
         with col2:
-            # Revenue distribution pie chart
+            # 收入分布饼图
             revenue_by_platform = df.groupby('Platform')['Revenue'].sum()
             fig_revenue = px.pie(
                 values=revenue_by_platform.values,
                 names=revenue_by_platform.index,
-                title="Revenue Distribution by Platform",
+                title="平台收入分布",
                 color=revenue_by_platform.index,
                 color_discrete_map=PLATFORM_COLORS
             )
             st.plotly_chart(fig_revenue, use_container_width=True)
         
-        # Daily trend
-        st.markdown("### 📈 Daily Revenue Trend")
+        # 每日趋势
+        st.markdown("### 📈 每日收入趋势")
         daily_revenue = df.groupby(['Date', 'Platform'])['Revenue'].sum().reset_index()
         
         fig_daily = px.line(
@@ -568,129 +578,136 @@ def main():
             x='Date',
             y='Revenue',
             color='Platform',
-            title='Daily Revenue by Platform - October 2025',
+            title='各平台每日收入 - 2025年10月',
             color_discrete_map=PLATFORM_COLORS,
-            markers=True
+            markers=True,
+            labels={'Date': '日期', 'Revenue': '收入 ($)', 'Platform': '平台'}
         )
         fig_daily.update_layout(hovermode='x unified')
         st.plotly_chart(fig_daily, use_container_width=True)
     
-    # TAB 2: REVENUE ANALYTICS
+    # 选项卡2: 收入分析
     with tab2:
-        st.markdown("### 💰 Revenue Deep Dive")
+        st.markdown("### 💰 收入深度分析")
         
-        # Revenue metrics by platform
+        # 各平台收入指标
         revenue_metrics = df.groupby('Platform').agg({
             'Revenue': ['sum', 'mean', 'median', 'std', 'min', 'max'],
             'Order_ID': 'count'
         }).round(2)
-        revenue_metrics.columns = ['Total', 'Mean', 'Median', 'Std Dev', 'Min', 'Max', 'Orders']
+        revenue_metrics.columns = ['总计', '平均值', '中位数', '标准差', '最小值', '最大值', '订单数']
         
         st.dataframe(revenue_metrics, use_container_width=True)
         
-        # Revenue distribution
+        # 收入分布
         col1, col2 = st.columns(2)
         
         with col1:
-            # Box plot
+            # 箱线图
             fig_box = px.box(
                 df,
                 x='Platform',
                 y='Revenue',
-                title='Revenue Distribution by Platform',
+                title='各平台收入分布',
                 color='Platform',
-                color_discrete_map=PLATFORM_COLORS
+                color_discrete_map=PLATFORM_COLORS,
+                labels={'Platform': '平台', 'Revenue': '收入 ($)'}
             )
             st.plotly_chart(fig_box, use_container_width=True)
         
         with col2:
-            # Histogram
+            # 直方图
             fig_hist = px.histogram(
                 df,
                 x='Revenue',
                 color='Platform',
-                title='Revenue Distribution',
+                title='收入分布直方图',
                 nbins=30,
-                color_discrete_map=PLATFORM_COLORS
+                color_discrete_map=PLATFORM_COLORS,
+                labels={'Revenue': '收入 ($)', 'Platform': '平台'}
             )
             st.plotly_chart(fig_hist, use_container_width=True)
         
-        # Day of week revenue
-        st.markdown("### 📅 Revenue by Day of Week")
+        # 星期收入分析
+        st.markdown("### 📅 按星期几的收入分析")
         dow_revenue = df.groupby(['DayOfWeek', 'Platform'])['Revenue'].sum().reset_index()
         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        day_order_cn = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
         dow_revenue['DayOfWeek'] = pd.Categorical(dow_revenue['DayOfWeek'], categories=day_order, ordered=True)
         dow_revenue = dow_revenue.sort_values('DayOfWeek')
+        dow_revenue['星期'] = dow_revenue['DayOfWeek'].apply(translate_day_name)
         
         fig_dow = px.bar(
             dow_revenue,
-            x='DayOfWeek',
+            x='星期',
             y='Revenue',
             color='Platform',
-            title='Revenue by Day of Week',
+            title='按星期几的收入分析',
             color_discrete_map=PLATFORM_COLORS,
-            barmode='group'
+            barmode='group',
+            labels={'Revenue': '收入 ($)', 'Platform': '平台', '星期': '星期'}
         )
         st.plotly_chart(fig_dow, use_container_width=True)
     
-    # TAB 3: STORE PERFORMANCE
+    # 选项卡3: 门店表现
     with tab3:
-        st.markdown("### 🏆 October Store Performance Analysis")
+        st.markdown("### 🏆 10月门店业绩分析")
         
-        # Store performance table with proper aggregation
+        # 门店业绩表格
         store_perf = df.groupby('Store_ID').agg({
             'Revenue': ['sum', 'mean', 'count'],
             'Platform': lambda x: dict(x.value_counts()),
             'Is_Completed': lambda x: x.mean() * 100
         }).round(2)
         
-        store_perf.columns = ['Total Revenue', 'Avg Order Value', 'Total Orders', 'Platform Mix', 'Completion Rate']
-        store_perf = store_perf.sort_values('Total Revenue', ascending=False)
+        store_perf.columns = ['总收入', '平均订单价值', '总订单数', '平台组合', '完成率']
+        store_perf = store_perf.sort_values('总收入', ascending=False)
         
-        # Add store names for display
-        store_perf['Store'] = store_perf.index.map(get_store_display_name)
+        # 添加门店名称显示
+        store_perf['门店'] = store_perf.index.map(get_store_display_name)
         
-        # Reorder columns
-        display_df = store_perf[['Store', 'Total Revenue', 'Total Orders', 'Avg Order Value', 'Completion Rate']]
+        # 重新排序列
+        display_df = store_perf[['门店', '总收入', '总订单数', '平均订单价值', '完成率']]
         
         st.dataframe(display_df, use_container_width=True)
         
-        # Store revenue chart
+        # 门店收入图表
         fig_stores = px.bar(
             store_perf.reset_index(),
             x='Store_ID',
-            y='Total Revenue',
-            title='Revenue by Store',
-            text='Total Revenue',
-            color='Total Revenue',
-            color_continuous_scale='Blues'
+            y='总收入',
+            title='各门店收入',
+            text='总收入',
+            color='总收入',
+            color_continuous_scale='Blues',
+            labels={'Store_ID': '门店ID', '总收入': '总收入 ($)'}
         )
         fig_stores.update_traces(texttemplate='$%{text:,.0f}', textposition='outside')
         fig_stores.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(fig_stores, use_container_width=True)
         
-        # Store heatmap by day
-        st.markdown("### 📅 Store Activity Heatmap")
+        # 门店热力图
+        st.markdown("### 📅 门店活动热力图")
         store_daily = df.groupby(['Store_ID', 'Day']).size().reset_index(name='Orders')
         pivot_store = store_daily.pivot(index='Store_ID', columns='Day', values='Orders').fillna(0)
         
-        # Create display labels for heatmap
+        # 创建热力图的显示标签
         pivot_store.index = pivot_store.index.map(get_store_display_name)
         
         fig_heatmap = px.imshow(
             pivot_store,
-            labels=dict(x="Day of October", y="Store", color="Orders"),
+            labels=dict(x="10月日期", y="门店", color="订单数"),
             aspect="auto",
             color_continuous_scale='RdYlGn',
-            title="Daily Order Volume by Store"
+            title="各门店每日订单量"
         )
         st.plotly_chart(fig_heatmap, use_container_width=True)
     
-    # TAB 4: OPERATIONS
+    # 选项卡4: 运营分析
     with tab4:
-        st.markdown("### 🕐 Operational Analytics")
+        st.markdown("### 🕐 运营分析")
         
-        # Hourly distribution
+        # 小时分布
         hourly_orders = df.groupby(['Hour', 'Platform']).size().reset_index(name='Orders')
         
         fig_hourly = px.bar(
@@ -698,91 +715,93 @@ def main():
             x='Hour',
             y='Orders',
             color='Platform',
-            title='Orders by Hour of Day',
-            color_discrete_map=PLATFORM_COLORS
+            title='按小时的订单分布',
+            color_discrete_map=PLATFORM_COLORS,
+            labels={'Hour': '小时', 'Orders': '订单数', 'Platform': '平台'}
         )
         fig_hourly.update_xaxes(dtick=1)
         st.plotly_chart(fig_hourly, use_container_width=True)
         
-        # Peak hours analysis
+        # 高峰时段分析
         col1, col2 = st.columns(2)
         
         with col1:
             peak_hours = df.groupby('Hour')['Revenue'].sum().nlargest(5).reset_index()
-            st.markdown("#### 🔥 Peak Revenue Hours")
+            st.markdown("#### 🔥 收入高峰时段")
+            peak_hours.columns = ['小时', '收入']
             st.dataframe(peak_hours, use_container_width=True)
         
         with col2:
             peak_stores = df.groupby('Store_ID')['Order_ID'].count().nlargest(5).reset_index()
-            peak_stores.columns = ['Store_ID', 'Orders']
-            peak_stores['Store'] = peak_stores['Store_ID'].map(get_store_display_name)
-            st.markdown("#### 🏆 Busiest Stores")
-            st.dataframe(peak_stores[['Store', 'Orders']], use_container_width=True)
+            peak_stores.columns = ['Store_ID', '订单数']
+            peak_stores['门店'] = peak_stores['Store_ID'].map(get_store_display_name)
+            st.markdown("#### 🏆 最繁忙门店")
+            st.dataframe(peak_stores[['门店', '订单数']], use_container_width=True)
         
-        # Completion rate by platform
-        st.markdown("### ✅ Order Completion Analysis")
+        # 完成率分析
+        st.markdown("### ✅ 订单完成率分析")
         completion_by_platform = df.groupby('Platform')['Is_Completed'].mean() * 100
         
         fig_completion = px.bar(
             x=completion_by_platform.index,
             y=completion_by_platform.values,
-            title='Completion Rate by Platform',
-            labels={'x': 'Platform', 'y': 'Completion Rate (%)'},
+            title='各平台完成率',
+            labels={'x': '平台', 'y': '完成率 (%)'},
             color=completion_by_platform.index,
             color_discrete_map=PLATFORM_COLORS
         )
         st.plotly_chart(fig_completion, use_container_width=True)
     
-    # TAB 5: GROWTH & TRENDS
+    # 选项卡5: 增长趋势
     with tab5:
-        st.markdown("### 📈 Growth Analysis & Trends")
+        st.markdown("### 📈 增长分析与趋势")
         
-        # Growth metrics
+        # 增长指标
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Revenue Growth (MoM)", f"+{revenue_growth:.1f}%", f"${total_revenue - (total_revenue/1.25):,.2f}")
+            st.metric("收入增长（月环比）", f"+{revenue_growth:.1f}%", f"${total_revenue - (total_revenue/1.25):,.2f}")
         with col2:
-            st.metric("Order Growth (MoM)", f"+{order_growth:.1f}%", f"{total_orders - int(total_orders/1.25):,}")
+            st.metric("订单增长（月环比）", f"+{order_growth:.1f}%", f"{total_orders - int(total_orders/1.25):,}")
         with col3:
             aov_last_month = avg_order_value * 0.95
             aov_change = ((avg_order_value - aov_last_month) / aov_last_month) * 100
-            st.metric("AOV Change", f"+{aov_change:.1f}%", f"${avg_order_value - aov_last_month:.2f}")
+            st.metric("客单价变化", f"+{aov_change:.1f}%", f"${avg_order_value - aov_last_month:.2f}")
         
-        # Trend analysis
-        st.markdown("### 📊 October Daily Trends")
+        # 趋势分析
+        st.markdown("### 📊 10月每日趋势")
         
         daily_metrics = df.groupby('Date').agg({
             'Revenue': 'sum',
             'Order_ID': 'count',
             'Platform': lambda x: x.mode()[0] if not x.empty else 'N/A'
-        }).rename(columns={'Order_ID': 'Orders', 'Platform': 'Top_Platform'})
+        }).rename(columns={'Order_ID': '订单数', 'Platform': '主要平台'})
         
-        # Create subplots
+        # 创建子图
         fig = make_subplots(
             rows=2, cols=1,
-            subplot_titles=('Daily Revenue Trend', 'Daily Order Volume'),
+            subplot_titles=('每日收入趋势', '每日订单量'),
             vertical_spacing=0.1
         )
         
-        # Revenue trend
+        # 收入趋势
         fig.add_trace(
             go.Scatter(
                 x=daily_metrics.index,
                 y=daily_metrics['Revenue'],
                 mode='lines+markers',
-                name='Revenue',
+                name='收入',
                 line=dict(color='#232773', width=3)
             ),
             row=1, col=1
         )
         
-        # Order trend
+        # 订单趋势
         fig.add_trace(
             go.Scatter(
                 x=daily_metrics.index,
-                y=daily_metrics['Orders'],
+                y=daily_metrics['订单数'],
                 mode='lines+markers',
-                name='Orders',
+                name='订单',
                 line=dict(color='#ff8000', width=3)
             ),
             row=2, col=1
@@ -791,8 +810,8 @@ def main():
         fig.update_layout(height=600, showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Moving averages
-        st.markdown("### 📈 7-Day Moving Averages")
+        # 移动平均
+        st.markdown("### 📈 7日移动平均")
         df['Date_only'] = df['Date'].dt.date
         daily_rev = df.groupby('Date_only')['Revenue'].sum().reset_index()
         daily_rev['MA7'] = daily_rev['Revenue'].rolling(7, min_periods=1).mean()
@@ -801,20 +820,20 @@ def main():
             daily_rev,
             x='Date_only',
             y=['Revenue', 'MA7'],
-            title='Revenue with 7-Day Moving Average',
-            labels={'value': 'Revenue ($)', 'Date_only': 'Date'}
+            title='收入与7日移动平均',
+            labels={'value': '收入 ($)', 'Date_only': '日期'}
         )
         st.plotly_chart(fig_ma, use_container_width=True)
     
-    # TAB 6: CUSTOMER ATTRIBUTION
+    # 选项卡6: 客户归因
     with tab6:
-        st.markdown("### 🎯 Customer Attribution Analysis")
+        st.markdown("### 🎯 客户归因分析")
         
-        # Customer segmentation
+        # 客户细分
         customer_metrics = perform_customer_segmentation(df)
         
         if not customer_metrics.empty:
-            # Segment distribution
+            # 细分分布
             segment_dist = customer_metrics['Segment'].value_counts()
             
             col1, col2 = st.columns(2)
@@ -823,168 +842,169 @@ def main():
                 fig_seg = px.pie(
                     values=segment_dist.values,
                     names=segment_dist.index,
-                    title='Customer Segmentation',
+                    title='客户细分',
                     hole=0.3
                 )
                 st.plotly_chart(fig_seg, use_container_width=True)
             
             with col2:
-                # Segment metrics
+                # 细分指标
                 segment_stats = customer_metrics.groupby('Segment').agg({
                     'Revenue': ['mean', 'sum'],
                     'Order_Count': 'mean'
                 }).round(2)
-                segment_stats.columns = ['Avg Revenue', 'Total Revenue', 'Avg Orders']
+                segment_stats.columns = ['平均收入', '总收入', '平均订单数']
                 st.dataframe(segment_stats, use_container_width=True)
         
-        # Platform attribution
-        st.markdown("### 📱 Platform Attribution")
+        # 平台归因
+        st.markdown("### 📱 平台归因")
         platform_metrics = df.groupby('Platform').agg({
             'Revenue': ['sum', 'mean'],
             'Order_ID': 'count',
             'Store_ID': 'nunique'
         }).round(2)
-        platform_metrics.columns = ['Total Revenue', 'AOV', 'Total Orders', 'Active Stores']
+        platform_metrics.columns = ['总收入', '客单价', '总订单', '活跃门店']
         
         st.dataframe(platform_metrics, use_container_width=True)
         
-        # Store-Platform matrix
-        st.markdown("### 🔗 Store-Platform Performance Matrix")
+        # 门店-平台矩阵
+        st.markdown("### 🔗 门店-平台业绩矩阵")
         store_platform = df.groupby(['Store_ID', 'Platform'])['Revenue'].sum().reset_index()
         pivot_sp = store_platform.pivot(index='Store_ID', columns='Platform', values='Revenue').fillna(0)
         
-        # Add store names for display
+        # 添加门店名称显示
         pivot_sp.index = pivot_sp.index.map(get_store_display_name)
         
         fig_matrix = px.imshow(
             pivot_sp,
-            labels=dict(x="Platform", y="Store", color="Revenue ($)"),
+            labels=dict(x="平台", y="门店", color="收入 ($)"),
             aspect="auto",
             color_continuous_scale='Viridis',
-            title="Revenue by Store and Platform"
+            title="各门店各平台收入"
         )
         st.plotly_chart(fig_matrix, use_container_width=True)
     
-    # TAB 7: RETENTION & CHURN
+    # 选项卡7: 留存与流失
     with tab7:
-        st.markdown("### 🔄 Retention & Churn Analysis")
+        st.markdown("### 🔄 留存与流失分析")
         
-        # Since we only have one month, simulate retention metrics
-        st.info("📌 Note: Retention metrics are estimated based on order frequency patterns within October.")
+        # 由于只有一个月数据，模拟留存指标
+        st.info("📌 注意：留存指标基于10月内的订单频率模式估算。")
         
-        # Order frequency analysis
+        # 订单频率分析
         order_freq = df.groupby('Order_ID').size().value_counts().sort_index()
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Simulate retention rates
+            # 模拟留存率
             retention_data = {
-                'Week': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                'Retention Rate': [100, 75, 60, 45],
-                'Active Customers': [total_orders, int(total_orders*0.75), int(total_orders*0.6), int(total_orders*0.45)]
+                '周': ['第1周', '第2周', '第3周', '第4周'],
+                '留存率': [100, 75, 60, 45],
+                '活跃客户': [total_orders, int(total_orders*0.75), int(total_orders*0.6), int(total_orders*0.45)]
             }
             retention_df = pd.DataFrame(retention_data)
             
             fig_retention = px.line(
                 retention_df,
-                x='Week',
-                y='Retention Rate',
-                title='Weekly Retention Rate (October)',
+                x='周',
+                y='留存率',
+                title='周留存率（10月）',
                 markers=True
             )
             fig_retention.update_traces(line_color='#232773', line_width=3)
             st.plotly_chart(fig_retention, use_container_width=True)
         
         with col2:
-            # Churn analysis
+            # 流失分析
             churn_data = {
-                'Platform': df['Platform'].unique(),
-                'Retention': [85, 78, 82],
-                'Churn': [15, 22, 18]
+                '平台': df['Platform'].unique(),
+                '留存': [85, 78, 82],
+                '流失': [15, 22, 18]
             }
             churn_df = pd.DataFrame(churn_data)
             
             fig_churn = px.bar(
                 churn_df,
-                x='Platform',
-                y=['Retention', 'Churn'],
-                title='Retention vs Churn by Platform (%)',
+                x='平台',
+                y=['留存', '流失'],
+                title='各平台留存 vs 流失率 (%)',
                 barmode='stack'
             )
             st.plotly_chart(fig_churn, use_container_width=True)
         
-        # Cohort analysis placeholder
-        st.markdown("### 📊 Cohort Analysis")
-        st.info("Cohort analysis requires multi-month data. Currently showing October 2025 performance only.")
+        # 同期群分析
+        st.markdown("### 📊 同期群分析")
+        st.info("同期群分析需要多月数据。当前仅显示2025年10月表现。")
         
-        # Weekly cohorts within October
+        # 10月内的周同期群
         df['Week'] = df['Date'].dt.isocalendar().week
         weekly_cohort = df.groupby(['Week', 'Platform']).agg({
             'Revenue': 'sum',
             'Order_ID': 'count'
         }).reset_index()
-        weekly_cohort.columns = ['Week', 'Platform', 'Revenue', 'Orders']
+        weekly_cohort.columns = ['周', '平台', '收入', '订单']
         
         fig_cohort = px.bar(
             weekly_cohort,
-            x='Week',
-            y='Revenue',
-            color='Platform',
-            title='Weekly Cohort Performance',
+            x='周',
+            y='收入',
+            color='平台',
+            title='周同期群表现',
             color_discrete_map=PLATFORM_COLORS,
-            barmode='group'
+            barmode='group',
+            labels={'周': '周', '收入': '收入 ($)', '平台': '平台'}
         )
         st.plotly_chart(fig_cohort, use_container_width=True)
     
-    # TAB 8: PLATFORM COMPARISON
+    # 选项卡8: 平台对比
     with tab8:
-        st.markdown("### 📱 Comprehensive Platform Comparison")
+        st.markdown("### 📱 综合平台对比")
         
-        # Detailed comparison table
+        # 详细对比表
         comparison_data = []
         for platform in df['Platform'].unique():
             platform_data = df[df['Platform'] == platform]
             
             comparison_data.append({
-                'Platform': platform,
-                'Total Orders': len(platform_data),
-                'Total Revenue': platform_data['Revenue'].sum(),
-                'Average Order Value': platform_data['Revenue'].mean(),
-                'Median Order Value': platform_data['Revenue'].median(),
-                'Std Dev': platform_data['Revenue'].std(),
-                'Min Order': platform_data['Revenue'].min(),
-                'Max Order': platform_data['Revenue'].max(),
-                'Completion Rate (%)': platform_data['Is_Completed'].mean() * 100,
-                'Cancellation Rate (%)': platform_data['Is_Cancelled'].mean() * 100,
-                'Active Stores': platform_data['Store_ID'].nunique(),
-                'Peak Hour': platform_data.groupby('Hour').size().idxmax() if not platform_data.empty else 'N/A',
-                'Best Day': platform_data.groupby('DayOfWeek')['Revenue'].sum().idxmax() if not platform_data.empty else 'N/A'
+                '平台': platform,
+                '总订单': len(platform_data),
+                '总收入': platform_data['Revenue'].sum(),
+                '平均订单价值': platform_data['Revenue'].mean(),
+                '中位订单价值': platform_data['Revenue'].median(),
+                '标准差': platform_data['Revenue'].std(),
+                '最小订单': platform_data['Revenue'].min(),
+                '最大订单': platform_data['Revenue'].max(),
+                '完成率 (%)': platform_data['Is_Completed'].mean() * 100,
+                '取消率 (%)': platform_data['Is_Cancelled'].mean() * 100,
+                '活跃门店': platform_data['Store_ID'].nunique(),
+                '高峰时段': platform_data.groupby('Hour').size().idxmax() if not platform_data.empty else 'N/A',
+                '最佳日期': translate_day_name(platform_data.groupby('DayOfWeek')['Revenue'].sum().idxmax()) if not platform_data.empty else 'N/A'
             })
         
         comparison_df = pd.DataFrame(comparison_data)
         
-        # Display metrics
-        st.markdown("#### 📊 Key Performance Indicators")
+        # 显示指标
+        st.markdown("#### 📊 关键绩效指标")
         formatted = comparison_df.copy()
-        formatted['Total Revenue'] = formatted['Total Revenue'].apply(lambda x: f"${x:,.2f}")
-        formatted['Average Order Value'] = formatted['Average Order Value'].apply(lambda x: f"${x:.2f}")
-        formatted['Median Order Value'] = formatted['Median Order Value'].apply(lambda x: f"${x:.2f}")
-        formatted['Std Dev'] = formatted['Std Dev'].apply(lambda x: f"${x:.2f}")
-        formatted['Min Order'] = formatted['Min Order'].apply(lambda x: f"${x:.2f}")
-        formatted['Max Order'] = formatted['Max Order'].apply(lambda x: f"${x:.2f}")
-        formatted['Completion Rate (%)'] = formatted['Completion Rate (%)'].apply(lambda x: f"{x:.1f}%")
-        formatted['Cancellation Rate (%)'] = formatted['Cancellation Rate (%)'].apply(lambda x: f"{x:.1f}%")
+        formatted['总收入'] = formatted['总收入'].apply(lambda x: f"${x:,.2f}")
+        formatted['平均订单价值'] = formatted['平均订单价值'].apply(lambda x: f"${x:.2f}")
+        formatted['中位订单价值'] = formatted['中位订单价值'].apply(lambda x: f"${x:.2f}")
+        formatted['标准差'] = formatted['标准差'].apply(lambda x: f"${x:.2f}")
+        formatted['最小订单'] = formatted['最小订单'].apply(lambda x: f"${x:.2f}")
+        formatted['最大订单'] = formatted['最大订单'].apply(lambda x: f"${x:.2f}")
+        formatted['完成率 (%)'] = formatted['完成率 (%)'].apply(lambda x: f"{x:.1f}%")
+        formatted['取消率 (%)'] = formatted['取消率 (%)'].apply(lambda x: f"{x:.1f}%")
         
         st.dataframe(formatted, use_container_width=True)
         
-        # Radar chart comparison
-        st.markdown("### 🎯 Multi-Dimensional Platform Analysis")
+        # 雷达图对比
+        st.markdown("### 🎯 多维度平台分析")
         
-        # Normalize metrics for radar chart
-        radar_metrics = comparison_df[['Platform', 'Total Orders', 'Total Revenue', 'Average Order Value', 'Active Stores', 'Completion Rate (%)']].copy()
+        # 标准化雷达图指标
+        radar_metrics = comparison_df[['平台', '总订单', '总收入', '平均订单价值', '活跃门店', '完成率 (%)']].copy()
         
-        # Normalize each metric to 0-100 scale
+        # 标准化到0-100范围
         for col in radar_metrics.columns[1:]:
             max_val = radar_metrics[col].max()
             if max_val > 0:
@@ -994,136 +1014,136 @@ def main():
         
         for _, row in radar_metrics.iterrows():
             fig_radar.add_trace(go.Scatterpolar(
-                r=[row['Total Orders'], row['Total Revenue'], row['Average Order Value'], row['Active Stores'], row['Completion Rate (%)']],
-                theta=['Order Volume', 'Revenue', 'AOV', 'Store Coverage', 'Completion Rate'],
+                r=[row['总订单'], row['总收入'], row['平均订单价值'], row['活跃门店'], row['完成率 (%)']],
+                theta=['订单量', '收入', '客单价', '门店覆盖', '完成率'],
                 fill='toself',
-                name=row['Platform'],
-                line_color=PLATFORM_COLORS.get(row['Platform'], '#000000')
+                name=row['平台'],
+                line_color=PLATFORM_COLORS.get(row['平台'], '#000000')
             ))
         
         fig_radar.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
             showlegend=True,
-            title="Platform Performance Radar (Normalized to 100%)"
+            title="平台绩效雷达图（标准化至100%）"
         )
         st.plotly_chart(fig_radar, use_container_width=True)
         
-        # Platform recommendations
-        st.markdown("### 💡 Strategic Recommendations")
+        # 平台建议
+        st.markdown("### 💡 战略建议")
         
         if len(comparison_df) > 1:
-            top_revenue_platform = comparison_df.loc[comparison_df['Total Revenue'].idxmax(), 'Platform']
-            top_orders_platform = comparison_df.loc[comparison_df['Total Orders'].idxmax(), 'Platform']
-            highest_aov_platform = comparison_df.loc[comparison_df['Average Order Value'].idxmax(), 'Platform']
+            top_revenue_platform = comparison_df.loc[comparison_df['总收入'].idxmax(), '平台']
+            top_orders_platform = comparison_df.loc[comparison_df['总订单'].idxmax(), '平台']
+            highest_aov_platform = comparison_df.loc[comparison_df['平均订单价值'].idxmax(), '平台']
             
             recommendations = [
-                f"🏆 **Revenue Leader**: {top_revenue_platform} generates the highest total revenue",
-                f"📈 **Volume Leader**: {top_orders_platform} has the most orders - consider AOV optimization",
-                f"💰 **Quality Leader**: {highest_aov_platform} has the highest average order value",
-                f"🎯 **Store Optimization**: Focus on underperforming stores in high-revenue platforms"
+                f"🏆 **收入领先者**: {top_revenue_platform}产生最高总收入",
+                f"📈 **订单量领先者**: {top_orders_platform}拥有最多订单 - 考虑优化客单价",
+                f"💰 **质量领先者**: {highest_aov_platform}拥有最高客单价",
+                f"🎯 **门店优化**: 关注高收入平台中表现不佳的门店"
             ]
             
             for rec in recommendations:
                 st.markdown(f"<div class='success-box'>{rec}</div>", unsafe_allow_html=True)
     
-    # Export functionality
+    # 导出功能
     st.markdown("---")
-    st.markdown("### 📤 Export Analytics Report")
+    st.markdown("### 📤 导出分析报告")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("📊 Generate Excel Report"):
+        if st.button("📊 生成Excel报告"):
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                # Summary sheet
+                # 摘要表
                 summary_data = {
-                    'Metric': ['Total Orders', 'Total Revenue', 'Average Order Value', 
-                              'Completion Rate', 'Cancellation Rate', 'Active Stores'],
-                    'Value': [f"{total_orders:,}", f"${total_revenue:,.2f}", 
-                             f"${avg_order_value:.2f}", f"{completion_rate:.1f}%",
-                             f"{cancellation_rate:.1f}%", f"{unique_stores}"]
+                    '指标': ['总订单', '总收入', '平均订单价值', 
+                            '完成率', '取消率', '活跃门店'],
+                    '数值': [f"{total_orders:,}", f"${total_revenue:,.2f}", 
+                           f"${avg_order_value:.2f}", f"{completion_rate:.1f}%",
+                           f"{cancellation_rate:.1f}%", f"{unique_stores}"]
                 }
-                pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
+                pd.DataFrame(summary_data).to_excel(writer, sheet_name='摘要', index=False)
                 
-                # Platform comparison
-                comparison_df.to_excel(writer, sheet_name='Platform_Comparison', index=False)
+                # 平台对比
+                comparison_df.to_excel(writer, sheet_name='平台对比', index=False)
                 
-                # Store performance
-                store_perf.to_excel(writer, sheet_name='Store_Performance')
+                # 门店业绩
+                store_perf.to_excel(writer, sheet_name='门店业绩')
                 
-                # Daily metrics
-                daily_metrics.to_excel(writer, sheet_name='Daily_Metrics')
+                # 每日指标
+                daily_metrics.to_excel(writer, sheet_name='每日指标')
                 
-                # Raw data
-                df.to_excel(writer, sheet_name='Raw_Data', index=False)
+                # 原始数据
+                df.to_excel(writer, sheet_name='原始数据', index=False)
             
             st.download_button(
-                label="📥 Download Excel Report",
+                label="📥 下载Excel报告",
                 data=output.getvalue(),
-                file_name=f"luckin_analytics_october_2025_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                file_name=f"瑞幸咖啡分析_2025年10月_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
     
     with col2:
-        if st.button("📈 Generate CSV Data"):
+        if st.button("📈 生成CSV数据"):
             csv_output = df.to_csv(index=False)
             st.download_button(
-                label="📥 Download CSV Data",
+                label="📥 下载CSV数据",
                 data=csv_output,
-                file_name=f"luckin_data_october_2025_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                file_name=f"瑞幸咖啡数据_2025年10月_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv"
             )
     
     with col3:
-        if st.button("📄 Generate Summary Report"):
+        if st.button("📄 生成摘要报告"):
             report = f"""
-LUCKIN COFFEE ANALYTICS REPORT
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Period: October 2025
+瑞幸咖啡分析报告
+生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+期间: 2025年10月
 
-EXECUTIVE SUMMARY
+执行摘要
 =================
-Total Orders: {total_orders:,}
-Total Revenue: ${total_revenue:,.2f}
-Average Order Value: ${avg_order_value:.2f}
-Completion Rate: {completion_rate:.1f}%
-Cancellation Rate: {cancellation_rate:.1f}%
-Revenue Growth (MoM): +{revenue_growth:.1f}%
-Order Growth (MoM): +{order_growth:.1f}%
+总订单: {total_orders:,}
+总收入: ${total_revenue:,.2f}
+平均订单价值: ${avg_order_value:.2f}
+完成率: {completion_rate:.1f}%
+取消率: {cancellation_rate:.1f}%
+收入增长（月环比）: +{revenue_growth:.1f}%
+订单增长（月环比）: +{order_growth:.1f}%
 
-STORE PERFORMANCE (TOP 6)
+门店业绩（前6名）
 =========================
-{store_perf.head(6)[['Store', 'Total Revenue', 'Total Orders']].to_string()}
+{store_perf.head(6)[['门店', '总收入', '总订单数']].to_string()}
 
-PLATFORM BREAKDOWN
+平台分析
 ==================
-{comparison_df[['Platform', 'Total Orders', 'Total Revenue']].to_string()}
+{comparison_df[['平台', '总订单', '总收入']].to_string()}
 
-DATA QUALITY NOTES
+数据质量说明
 ==================
-- All data filtered to October 2025
-- Store IDs standardized (US00001-US00006)
-- {'Grubhub dates validated' if 'Grubhub' in platform_status and platform_status['Grubhub'] == 'SUCCESS' else 'Grubhub dates estimated'}
+- 所有数据筛选至2025年10月
+- 门店ID已标准化（US00001-US00006）
+- {'Grubhub日期已验证' if 'Grubhub' in platform_status and platform_status['Grubhub'] == 'SUCCESS' else 'Grubhub日期为估计值'}
 
-Date Range: {df['Date'].min().strftime('%Y-%m-%d')} to {df['Date'].max().strftime('%Y-%m-%d')}
-Platforms: {', '.join(df['Platform'].unique())}
-Stores: {unique_stores} unique locations
-Total Records: {len(df):,}
+日期范围: {df['Date'].min().strftime('%Y-%m-%d')} 至 {df['Date'].max().strftime('%Y-%m-%d')}
+平台: {', '.join(df['Platform'].unique())}
+门店: {unique_stores} 个活跃位置
+总记录: {len(df):,}
 """
             st.download_button(
-                label="📥 Download Summary Report",
+                label="📥 下载摘要报告",
                 data=report,
-                file_name=f"luckin_summary_october_2025_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                file_name=f"瑞幸咖啡摘要_2025年10月_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                 mime="text/plain"
             )
     
-    # Footer
+    # 页脚
     st.markdown("---")
     st.markdown("""
         <div style='text-align: center; color: #666; padding: 1rem;'>
-            <p>Luckin Coffee Advanced Marketing Analytics Dashboard v5.0</p>
-            <p style='font-size: 0.9rem;'>✅ All data issues resolved • Store mapping fixed • October 2025 data only</p>
+            <p>瑞幸咖啡高级营销分析仪表板 v5.0</p>
+            <p style='font-size: 0.9rem;'>✅ 所有数据问题已解决 • 门店映射已修复 • 仅限2025年10月数据</p>
         </div>
     """, unsafe_allow_html=True)
 
