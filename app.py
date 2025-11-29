@@ -7,8 +7,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import warnings
 import io
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings('ignore')
 
 # 页面配置
